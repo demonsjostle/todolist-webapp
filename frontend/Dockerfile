@@ -11,7 +11,7 @@ COPY ./package.json ./frontend/package-lock.json ./
 RUN npm install --frozen-lockfile
 
 # คัดลอกไฟล์ทั้งหมดจากโฟลเดอร์ frontend ไปที่ container
-COPY ./frontend ./
+COPY ./ ./frontend
 
 # build Next.js project สำหรับ production
 RUN npm run build
