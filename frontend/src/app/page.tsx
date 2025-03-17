@@ -1,103 +1,165 @@
+"use client";
 import Image from "next/image";
+import RootLayout from "./layout";
+import { useState, useEffect, useRef } from "react";
+import Header from "@/components/Header";
+import Card from "@/components/Card";
+import TaskContainer from "@/components/TaskContainer";
+import { useRouter } from "next/navigation";
+import { getTodolistByDate, updateTodolist } from "@/apis/todolist";
+import { TaskData } from "@/components/TaskContainer";
+import { parseTaskData } from "@/utils/formattedJSONBData";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const autosaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isSaved, setIsSaved] = useState(true); // ตรวจสอบว่าบันทึกสำเร็จหรือยัง
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [currentDate, setCurrentDate] = useState("");
+  const [taskQuery, setTaskQuery] = useState<{
+    id: number;
+    date: string;
+    taskData: TaskData[];
+  } | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    } else {
+      router.push("/login");
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setUser(null); // อัปเดต state เพื่อเปลี่ยน UI
+    router.push("/login");
+  };
+
+  useEffect(() => {
+    const date = new Date().toLocaleDateString("en-CA", {
+      timeZone: "Asia/Bangkok",
+    });
+
+    setCurrentDate(date);
+  }, []);
+
+  useEffect(() => {
+    // ดึงข้อมูล todolist ตามวันที่
+    if (currentDate) {
+      getTodolistByDate(currentDate, user.username).then((data) => {
+        if (data) {
+          const parsedData = parseTaskData(data.taskData[0]);
+          console.log(parsedData);
+          if (parsedData) {
+            setTaskQuery({
+              id: data.id,
+              date: data.date,
+              taskData: parsedData,
+            });
+          } else {
+            console.log("Failed to parse task data.");
+          }
+        }
+      });
+    }
+  }, [currentDate]);
+
+  const toggleTask = (taskIndex: number) => {
+    if (taskQuery) {
+      // console.log(taskIndex);
+      const updatedTaskData = [...taskQuery.taskData];
+      updatedTaskData[taskIndex].done = !updatedTaskData[taskIndex].done;
+      setTaskQuery({
+        ...taskQuery,
+        taskData: updatedTaskData,
+      });
+      setIsSaved(false); // รีเซ็ตสถานะ ให้ autosave ทำงานอีกครั้ง
+    }
+  };
+
+  const deleteTask = (taskIndex: number) => {
+    if (taskQuery) {
+      const updatedTaskData = taskQuery.taskData.filter(
+        (_, index) => index !== taskIndex, // ลบ task ที่ตรงกับ index
+      );
+
+      setTaskQuery({
+        ...taskQuery,
+        taskData: updatedTaskData, // อัปเดต state taskData
+      });
+      setIsSaved(false); // ตั้งสถานะให้ autosave ทำงานใหม่
+    }
+  };
+
+  useEffect(() => {
+    if (!taskQuery || isSaved) return; // ถ้าไม่มี taskQuery หรือบันทึกสำเร็จแล้ว ให้ข้าม
+
+    autosaveIntervalRef.current = setInterval(() => {
+      console.log(typeof taskQuery?.taskData);
+
+      let tasks = taskQuery.taskData.map(
+        (task) =>
+          `{priority: '${task.priority}', text: '${task.text}', desc: '${task.desc}', done: ${task.done}}`,
+      );
+
+      const taskData = [tasks.join(",")]; // แปลงเป็น JSONB array
+
+      updateTodolist(taskQuery.id, taskData)
+        .then((result) => {
+          console.log("✅ Autosave success:", result);
+          clearInterval(autosaveIntervalRef.current!); // หยุด autosave เมื่อเซฟสำเร็จ
+          setIsSaved(true); // ตั้งค่าให้รู้ว่าบันทึกสำเร็จแล้ว
+        })
+        .catch((error) => {
+          console.error("❌ Autosave failed:", error);
+        });
+    }, 5000); // บันทึกทุก 5 วินาที
+
+    return () => {
+      if (autosaveIntervalRef.current) {
+        clearInterval(autosaveIntervalRef.current);
+      }
+    };
+  }, [taskQuery, isSaved]);
+
+  return (
+    <RootLayout>
+      {user && (
+        <>
+          <div className="absolute top-1 right-2 flex items-center space-x-4">
+            <div className="flex items-center space-x-3 bg-white shadow-sm px-3 py-1.5 rounded-md">
+              <span className="text-gray-700 text-sm font-medium">
+                👤 {user?.username}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="px-2 py-0.5 text-xs font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition duration-300"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+          <div className="absolute top-1 left-2 flex items-center space-x-4">
+            <div
+              className={`px-2 py-1 rounded-full text-xs font-medium transition-all duration-300 ease-in-out ${
+                isSaved ? "bg-green-500 text-white" : "bg-red-500 text-white"
+              }`}
+            >
+              {isSaved ? "Saved" : "Not Saved"}
+            </div>
+          </div>
+          <Card>
+            <Header dateString={currentDate} />
+            <TaskContainer
+              taskData={taskQuery ? taskQuery.taskData : []}
+              toggleTask={toggleTask}
+              deleteTask={deleteTask}
+            ></TaskContainer>
+          </Card>
+        </>
+      )}
+    </RootLayout>
   );
 }
