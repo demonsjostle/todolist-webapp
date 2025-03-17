@@ -1,5 +1,5 @@
 # ใช้ Node.js image สำหรับการ build
-FROM node:16-alpine AS builder
+FROM node:18-alpine AS builder
 
 # ตั้ง working directory ภายใน container
 WORKDIR /app
