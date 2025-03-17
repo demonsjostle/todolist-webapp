@@ -5,13 +5,13 @@ FROM node:16-alpine AS builder
 WORKDIR /app
 
 # คัดลอก package.json และ package-lock.json (หรือ yarn.lock)
-COPY ./package.json ./frontend/package-lock.json ./
+COPY ./package.json /package-lock.json ./
 
 # ติดตั้ง dependencies
 RUN npm install --frozen-lockfile
 
 # คัดลอกไฟล์ทั้งหมดจากโฟลเดอร์ frontend ไปที่ container
-COPY ./ ./frontend
+COPY ./ /
 
 # build Next.js project สำหรับ production
 RUN npm run build
