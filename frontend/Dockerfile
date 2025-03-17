@@ -5,7 +5,7 @@ FROM node:16-alpine AS builder
 WORKDIR /app
 
 # คัดลอก package.json และ package-lock.json (หรือ yarn.lock)
-COPY ./frontend/package.json ./frontend/package-lock.json ./
+COPY ./package.json ./frontend/package-lock.json ./
 
 # ติดตั้ง dependencies
 RUN npm install --frozen-lockfile
@@ -23,7 +23,7 @@ FROM nginx:alpine
 COPY --from=builder /app/out /usr/share/nginx/html
 
 # คัดลอกไฟล์ Nginx config ที่ต้องการ
-COPY ./frontend/default.conf /etc/nginx/conf.d/default.conf
+COPY ./default.conf /etc/nginx/conf.d/default.conf
 
 # ตั้งค่า environment variables
 ENV NODE_ENV=production
