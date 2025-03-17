@@ -1,32 +1,17 @@
-version: '3'
-
+version: "3.9"
 services:
   nextjs:
-    build:
-      context: ./frontend  # ระบุ path ของ frontend ที่มี Dockerfile
-      dockerfile: Dockerfile
-    container_name: nextjs-app
+    image: nextjs:latest
+    container_name: nextjs
     ports:
-      - "3000:3000" # หรือใช้ port ที่คุณต้องการ
-    networks:
-      - app-network
-    environment:
-      - NODE_ENV=production
-    command: ["npm", "run", "start"] # คำสั่งในการ run Next.js ใน production mode
+      - "3000:3000"
+    restart: always
 
   nginx:
-    image: nginx:alpine
+    image: nginx:latest
     container_name: nginx
     ports:
       - "80:80"
     volumes:
-      - ./frontend/default.conf:/etc/nginx/conf.d/default.conf
-      - ./frontend/public:/usr/share/nginx/html
-    networks:
-      - app-network
-    depends_on:
-      - nextjs
-
-networks:
-  app-network:
-    driver: bridge
+      - /etc/ssl:/etc/nginx/ssl:ro
+    restart: always
