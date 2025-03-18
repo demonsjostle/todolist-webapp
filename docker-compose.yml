@@ -4,6 +4,8 @@ services:
   nextjs:
     build: ./frontend
     container_name: nextjs
+    env_file:
+      - ./frontend/.env  # ระบุไฟล์ .env ที่จะโหลดใน container
     ports:
       - "3000:3000"
     networks:
