@@ -47,7 +47,7 @@ export default function Home() {
 
   useEffect(() => {
     // ดึงข้อมูล todolist ตามวันที่
-    if (currentDate) {
+    if (currentDate && user) {
       getTodolistByDate(currentDate, user.username).then((data) => {
         if (data) {
           const parsedData = parseTaskData(data.taskData[0]);

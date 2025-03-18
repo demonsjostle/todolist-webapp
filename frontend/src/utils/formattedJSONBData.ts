@@ -1,3 +1,5 @@
+"use client";
+
 export function parseTaskData(rawData) {
   const correctedString = rawData
     // เพิ่มเครื่องหมาย " รอบ key
